@@ -79,7 +79,7 @@ body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;ba
 <div class="header">
   <h1>📅 2026 年 6 月 月會投票（含聚餐）</h1>
   <p>投票結果將自動存入 Google Sheet</p>
-  <div class="deadline">⏰ 截止：6 月 3 日（建議）</div>
+  <div class="deadline">⏰ 截止：6 月 24 日（建議）</div>
 </div>
 <div class="steps">
   <div class="step active" id="tab1"><span class="num">1</span>姓名</div>
@@ -149,8 +149,8 @@ body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;ba
 
 </div>
 <script>
-const VOTE_DATES = [{"label":"6/5(五)","display":"6 月 5 日（週五）"},{"label":"6/12(五)","display":"6 月 12 日（週五）"},{"label":"6/26(五)","display":"6 月 26 日（週五）"},{"label":"6/18(四)","display":"6 月 18 日（週四） · 111"}];
-const SELECTED_RESTAURANTS = [{"name":"龍都酒樓 中山總店","type":"中式"},{"name":"鰻料理 江戶川","type":"日式"},{"name":"丰禾 台北南京東店","type":"合菜"},{"name":"養心茶樓 蔬食飲茶","type":"港式"},{"name":"肥龍老火鍋 台北林森店","type":"重慶火鍋"},{"name":"吾皇大大「朕的鍋物」","type":"火鍋"},{"name":"肉多多火鍋-台北中山北店","type":"火鍋"},{"name":"鮨老大 日本料理","type":"日式"},{"name":"天香回味養生鍋 總店","type":"火鍋"},{"name":"AN-Burger","type":"漢堡"},{"name":"魚兵衛太春和食處","type":"日式"},{"name":"GALERIE Bistro 家樂利小酒館","type":"西式"},{"name":"Miacucina（My kitchen）南西店","type":"義式"},{"name":"默爾 pasta pizza(台北誠品南西店)","type":"義式"},{"name":"Cafe49 Restaurant & Bar","type":"義式"},{"name":"金孫韓廚 義大利麵 中山","type":"韓義"},{"name":"HATSU Yakiniku & Wine 和牛燒肉專門店","type":"燒肉"},{"name":"貳樓中山南西店","type":"美式"},{"name":"美天餐室 DAY DAY HAPPY FOOD","type":"港式"},{"name":"MO-MO-PARADISE 台北中山牧場","type":"壽喜燒"},{"name":"八條老宅麻辣鍋","type":"火鍋"},{"name":"TEST555","type":"火鍋/涮涮鍋"}];
+const VOTE_DATES = [{"label":"6/26(五)","display":"6 月 26 日（週五）"}];
+const SELECTED_RESTAURANTS = [{"name":"龍都酒樓 中山總店","type":"中式"},{"name":"鰻料理 江戶川","type":"日式"},{"name":"丰禾 台北南京東店","type":"合菜"},{"name":"阿美飯店","type":"合菜"},{"name":"辣吉點正宗成都串串香林森條通店","type":"陸式"},{"name":"阿薄郎台式小酒館","type":"酒館"},{"name":"養心茶樓 蔬食飲茶","type":"港式"},{"name":"肥龍老火鍋 台北林森店","type":"重慶火鍋"},{"name":"吾皇大大「朕的鍋物」","type":"火鍋"},{"name":"肉多多火鍋-台北中山北店","type":"火鍋"},{"name":"鮨老大 日本料理","type":"日式"},{"name":"天香回味養生鍋 總店","type":"火鍋"},{"name":"AN-Burger","type":"漢堡"},{"name":"魚兵衛太春和食處","type":"日式"},{"name":"GALERIE Bistro 家樂利小酒館","type":"西式"},{"name":"Miacucina（My kitchen）南西店","type":"義式"},{"name":"默爾 pasta pizza(台北誠品南西店)","type":"義式"},{"name":"Cafe49 Restaurant & Bar","type":"義式"},{"name":"金孫韓廚 義大利麵 中山","type":"韓義"},{"name":"HATSU Yakiniku & Wine 和牛燒肉專門店","type":"燒肉"},{"name":"貳樓中山南西店","type":"美式"},{"name":"美天餐室 DAY DAY HAPPY FOOD","type":"港式"},{"name":"MO-MO-PARADISE 台北中山牧場","type":"壽喜燒"},{"name":"八條老宅麻辣鍋","type":"火鍋"}];
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlKzmqIE-UweDjN7z5Phvap_pQDto-Fu4eFIwyryqdx9h_00ZMQXjtFQUJzh9INS7F/exec';
 const VOTE_MONTH = '2026 年 6 月';
 const SHEET_NAME = '2026年6月';
