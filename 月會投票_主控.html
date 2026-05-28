@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月會投票 主控系統</title>
+<style>
+:root { color-scheme: light; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  background: #f5f7fa; color: #1a202c; min-height: 100vh; padding-bottom: 60px;
+}
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #4f46e5 100%);
+  color: #fff; padding: 24px 20px 20px; text-align: center;
+}
+.header h1 { font-size: 1.3rem; font-weight: 800; }
+.header .sub { font-size: .82rem; opacity: .85; margin-top: 5px; }
+.mode-badge {
+  display: inline-block; margin-top: 10px;
+  padding: 3px 16px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+  background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4);
+}
+/* ── Steps ── */
+.steps {
+  display: flex; justify-content: center;
+  background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 8px; overflow-x: auto;
+}
+.step {
+  padding: 11px 14px; font-size: .78rem; font-weight: 600; color: #a0aec0;
+  border-bottom: 3px solid transparent; white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.step.active { color: #4f46e5; border-color: #4f46e5; }
+.step .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; background: #e2e8f0; border-radius: 50%;
+  font-size: .68rem; margin-right: 4px; transition: background .15s;
+}
+.step.active .num { background: #4f46e5; color: #fff; }
+.step.done .num   { background: #48bb78; color: #fff; }
+.step.done        { color: #48bb78; }
+/* ── Content ── */
+.content { max-width: 740px; margin: 0 auto; padding: 18px 16px; }
+.panel { display: none; }
+.panel.visible { display: block; }
+.card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07); padding: 20px; margin-bottom: 14px;
+}
+.card-title {
+  font-size: .95rem; font-weight: 700; margin-bottom: 14px;
+  padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;
+}
+/* ── Role selector ── */
+.role-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.role-btn {
+  padding: 22px 14px; border-radius: 12px; border: 2px solid #e2e8f0;
+  cursor: pointer; text-align: center; background: #f9f9ff;
+  transition: border-color .15s, background .15s;
+}
+.role-btn:hover { border-color: #4f46e5; background: #eef2ff; }
+.role-btn.selected { border-color: #4f46e5; background: #eef2ff; }
+.role-btn .icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.role-btn .title { font-size: .95rem; font-weight: 700; color: #1a202c; }
+.role-btn .desc  { font-size: .75rem; color: #718096; margin-top: 4px; }
+/* ── Name input ── */
+.name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.name-row label { font-weight: 600; font-size: .9rem; white-space: nowrap; }
+.name-row input {
+  flex: 1; min-width: 140px; padding: 9px 13px;
+  border: 2px solid #e2e8f0; border-radius: 8px; font-size: .95rem; outline: none;
+}
+.name-row input:focus { border-color: #4f46e5; }
+/* ── Month picker ── */
+.month-btns { display: flex; gap: 12px; margin-bottom: 16px; }
+.month-btn {
+  flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #e2e8f0;
+  cursor: pointer; text-align: center; background: #f9f9ff;
+  transition: border-color .15s, background .15s;
+}
+.month-btn:hover { border-color: #4f46e5; background: #eef2ff; }
+.month-btn.selected { border-color: #4f46e5; background: #eef2ff; }
+.month-btn .mlabel { font-size: 1.1rem; font-weight: 800; color: #1a202c; }
+.month-btn .msub   { font-size: .75rem; color: #718096; margin-top: 4px; }
+/* ── Date checkbox list ── */
+.date-list { display: flex; flex-direction: column; gap: 8px; }
+.date-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+  border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.date-item:hover { border-color: #c7d2fe; background: #fafaff; }
+.date-item.checked { border-color: #4f46e5; background: #eef2ff; }
+.date-item input[type=checkbox] { width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer; }
+.date-item .dlabel { font-size: .9rem; font-weight: 600; }
+.date-item .dsub   { font-size: .75rem; color: #718096; margin-left: auto; }
+/* ── Vote items (date / restaurant) ── */
+.vote-list { display: flex; flex-direction: column; gap: 8px; }
+.vote-item {
+  display: grid; align-items: center; gap: 8px; padding: 10px 12px;
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  transition: border-color .12s, background .12s;
+}
+.vote-item.date-row  { grid-template-columns: 44px 1fr auto auto auto; }
+.vote-item.rest-row  { grid-template-columns: 40px 1fr auto auto; }
+.vote-item:hover { border-color: #c7d2fe; background: #fafaff; }
+.badge { background: #eef2ff; color: #4338ca; font-weight: 700; font-size: .72rem; padding: 3px 6px; border-radius: 6px; text-align: center; }
+.badge-r { background: #fef3c7; color: #92400e; font-weight: 700; font-size: .68rem; padding: 3px 5px; border-radius: 6px; white-space: nowrap; }
+.item-label { font-size: .88rem; font-weight: 500; }
+.item-sub   { font-size: .72rem; color: #718096; margin-top: 2px; }
+.vbtn {
+  padding: 5px 10px; border-radius: 7px; border: 2px solid #e2e8f0;
+  font-size: .76rem; font-weight: 700; cursor: pointer;
+  background: #f7fafc; color: #a0aec0; transition: all .1s; white-space: nowrap;
+}
+.vbtn:hover { border-color: #a0aec0; color: #4a5568; }
+.vbtn.yes.on   { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+.vbtn.maybe.on { background: #fefcbf; border-color: #d69e2e; color: #744210; }
+.vbtn.no.on    { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
+.vbtn.like.on    { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+.vbtn.dislike.on { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
+/* ── Add restaurant ── */
+.add-rest-box {
+  margin-top: 16px; padding: 14px 16px;
+  background: #f0fdf4; border: 2px dashed #86efac; border-radius: 10px;
+}
+.add-rest-box h4 { font-size: .85rem; color: #166534; margin-bottom: 10px; }
+.add-rest-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.add-rest-form input {
+  flex: 1; min-width: 130px; padding: 7px 10px;
+  border: 1.5px solid #86efac; border-radius: 7px; font-size: .84rem; outline: none;
+}
+.add-rest-form input:focus { border-color: #22c55e; }
+.add-rest-form select {
+  padding: 7px 9px; border: 1.5px solid #86efac; border-radius: 7px;
+  font-size: .84rem; background: #fff; outline: none;
+}
+.btn-add { background: #22c55e; color: #fff; border: none; padding: 7px 14px; border-radius: 7px; font-size: .84rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn-add:hover { background: #16a34a; }
+.btn-add:disabled { background: #a0aec0; cursor: not-allowed; }
+.add-status { font-size: .76rem; color: #166534; margin-top: 6px; min-height: 18px; }
+/* ── Sheet link ── */
+.sheet-link-bar {
+  margin-top: 12px; padding: 8px 12px;
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+  font-size: .78rem; color: #1e40af; display: flex; align-items: center; gap: 8px;
+}
+.sheet-link-bar a { color: #1d4ed8; font-weight: 700; }
+/* ── Nav buttons ── */
+.nav { display: flex; justify-content: space-between; margin-top: 8px; }
+.btn-next {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff; border: none; padding: 11px 26px;
+  border-radius: 9px; font-size: .9rem; font-weight: 700; cursor: pointer;
+}
+.btn-next:hover { opacity: .88; }
+.btn-back {
+  background: #e2e8f0; color: #4a5568; border: none;
+  padding: 11px 20px; border-radius: 9px; font-size: .9rem; font-weight: 600; cursor: pointer;
+}
+.btn-back:hover { background: #cbd5e0; }
+/* ── Generate / Submit ── */
+.action-area { text-align: center; padding: 16px; }
+.btn-gen {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff; border: none; padding: 14px 36px;
+  border-radius: 10px; font-size: 1rem; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-gen:hover { opacity: .88; }
+.btn-submit {
+  background: linear-gradient(135deg, #38a169, #276749);
+  color: #fff; border: none; padding: 14px 36px;
+  border-radius: 10px; font-size: 1rem; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-submit:hover { opacity: .88; }
+.btn-submit:disabled, .btn-gen:disabled { background: #a0aec0; cursor: not-allowed; }
+.action-status { margin-top: 12px; font-size: .88rem; font-weight: 600; min-height: 24px; }
+.ok-txt  { color: #276749; }
+.err-txt { color: #c53030; }
+.ing-txt { color: #4f46e5; }
+/* ── Preview card ── */
+.preview-box {
+  background: #f7fafc; border: 2px dashed #cbd5e0; border-radius: 10px; padding: 14px; margin-bottom: 12px;
+}
+.preview-box h3 { font-size: .82rem; color: #4a5568; margin-bottom: 8px; }
+#preview-text {
+  white-space: pre-wrap; font-family: "Courier New", monospace;
+  font-size: .75rem; color: #2d3748; background: #fff; padding: 12px;
+  border-radius: 8px; border: 1px solid #e2e8f0; max-height: 260px; overflow-y: auto;
+}
+/* ── Holiday / Custom tags ── */
+.holiday-tag {
+  font-size: .68rem; font-weight: 700; color: #c05621;
+  background: #feebc8; padding: 2px 7px; border-radius: 5px;
+  margin-left: 6px; white-space: nowrap;
+}
+.custom-tag {
+  font-size: .66rem; font-weight: 700; color: #276749;
+  background: #c6f6d5; padding: 2px 6px; border-radius: 5px; margin-left: 5px;
+}
+.date-item.holiday { opacity: .7; }
+/* ── Custom date form ── */
+.custom-date-box {
+  margin-top: 14px; padding: 13px 15px;
+  background: #f0f9ff; border: 2px dashed #7dd3fc; border-radius: 10px;
+}
+.custom-date-box h4 { font-size: .85rem; color: #075985; margin-bottom: 10px; }
+.custom-date-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.custom-date-form input[type=date],
+.custom-date-form input[type=text] {
+  padding: 7px 10px; border: 1.5px solid #7dd3fc; border-radius: 7px;
+  font-size: .84rem; outline: none; background: #fff;
+}
+.custom-date-form input[type=date] { width: 150px; }
+.custom-date-form input[type=text]  { flex: 1; min-width: 100px; }
+.custom-date-form input:focus { border-color: #0284c7; }
+.btn-add-date {
+  background: #0284c7; color: #fff; border: none;
+  padding: 7px 14px; border-radius: 7px; font-size: .84rem;
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.btn-add-date:hover { background: #0369a1; }
+.btn-remove-date {
+  margin-left: auto; background: none; border: none;
+  color: #e53e3e; font-size: .85rem; cursor: pointer; padding: 2px 6px;
+  border-radius: 5px;
+}
+.btn-remove-date:hover { background: #fed7d7; }
+/* ── Loading ── */
+.loading { text-align: center; padding: 24px; color: #718096; font-size: .88rem; }
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 3px solid #e2e8f0; border-top-color: #4f46e5;
+  border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.disclaimer { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 8px; padding: 9px 13px; font-size: .75rem; color: #7b6000; margin-top: 10px; }
+/* ── Organizer restaurant selection toggle ── */
+.vbtn-sel {
+  padding: 5px 11px; border-radius: 7px; font-size: .76rem; font-weight: 700;
+  cursor: pointer; border: 2px solid; white-space: nowrap; transition: all .1s;
+}
+.vbtn-sel.sel-in  { background: #eef2ff; border-color: #4f46e5; color: #3730a3; }
+.vbtn-sel.sel-out { background: #f7fafc; border-color: #cbd5e0; color: #a0aec0; }
+.vbtn-sel.sel-in:hover  { background: #c7d2fe; }
+.vbtn-sel.sel-out:hover { background: #e2e8f0; color: #4a5568; }
+.vote-item.rest-excluded { opacity: .45; background: #fafafa !important; }
+/* ── Selection summary ── */
+.sel-summary {
+  font-size: .76rem; color: #4f46e5; font-weight: 600;
+  margin-bottom: 8px; padding: 5px 10px;
+  background: #eef2ff; border-radius: 7px; display: inline-block;
+}
+/* ── Management tools card ── */
+.mgmt-card {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  padding: 18px 20px; margin-bottom: 14px;
+  border-top: 3px solid #e2e8f0;
+}
+.mgmt-card .card-title { font-size: .88rem; }
+.mgmt-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap;
+}
+.mgmt-row:last-child { border-bottom: none; padding-bottom: 0; }
+.mgmt-row .mgmt-label { font-size: .82rem; font-weight: 600; flex: 1; min-width: 120px; }
+.mgmt-row .mgmt-sub { font-size: .74rem; color: #718096; display: block; font-weight: 400; margin-top: 2px; }
+.btn-sheet-link {
+  background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe;
+  padding: 7px 16px; border-radius: 8px; font-size: .82rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-sheet-link:hover { background: #dbeafe; }
+.btn-clear {
+  background: #fff5f5; color: #c53030; border: 1.5px solid #feb2b2;
+  padding: 7px 16px; border-radius: 8px; font-size: .82rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-clear:hover { background: #fed7d7; }
+.btn-clear:disabled { background: #f7f7f7; color: #a0aec0; border-color: #e2e8f0; cursor: not-allowed; }
+.clear-status { font-size: .78rem; font-weight: 600; min-height: 18px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📅 月會投票 主控系統</h1>
+  <div class="sub">發起本次月會日期 &amp; 聚餐投票</div>
+  <div class="mode-badge">🗂️ 發起人模式</div>
+</div>
+
+
+<div class="steps" id="steps-bar">
+  <div class="step active" id="tab1"><span class="num">1</span>姓名</div>
+  <div class="step"        id="tab2"><span class="num">2</span>月份／日期</div>
+  <div class="step"        id="tab3"><span class="num">3</span>餐廳</div>
+  <div class="step"        id="tab4"><span class="num">4</span>產生投票頁</div>
+</div>
+
+<div class="content">
+
+  <!-- ══ Step 1：姓名 ══ -->
+  <div class="panel visible" id="p1">
+    <div class="card">
+      <div class="card-title">👤 請輸入發起人姓名</div>
+      <div class="name-row">
+        <label>姓名：</label>
+        <input type="text" id="voter-name" placeholder="例：王小明" autofocus>
+      </div>
+    </div>
+    <div class="nav"><div></div><button class="btn-next" onclick="nextStep(1)">下一步 →</button></div>
+  </div>
+
+  <!-- ══ Step 2A：發起人 — 月份 + 週五選擇 ══ -->
+  <div class="panel" id="p2org">
+    <div class="card">
+      <div class="card-title">📆 選擇投票月份</div>
+      <div class="month-btns" id="month-btns"></div>
+      <div id="friday-section" style="display:none;">
+        <p style="font-size:.78rem;color:#718096;margin-bottom:10px;">
+          以下為該月每週最後工作日（週五），<span style="color:#c05621;font-weight:600;">🎌 國定假日已自動取消勾選</span>，請確認後勾選要列入投票的日期：
+        </p>
+        <div class="date-list" id="friday-list"></div>
+        <p style="font-size:.72rem;color:#a0aec0;margin-top:8px;">
+          ※ 如需加入非週五或補班日，請使用下方「新增自定日期」
+        </p>
+        <!-- 新增自定日期 -->
+        <div class="custom-date-box">
+          <h4>➕ 新增自定日期（補班日 / 非週五 / 其他）</h4>
+          <div class="custom-date-form">
+            <input type="date" id="custom-date-input">
+            <input type="text" id="custom-date-note" placeholder="備註（選填，例：補班日）" maxlength="12">
+            <button class="btn-add-date" onclick="addCustomDate()">新增</button>
+          </div>
+          <div id="custom-date-status" style="font-size:.75rem;color:#c05621;margin-top:6px;min-height:16px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="btn-back" onclick="goStep(1)">← 上一步</button>
+      <button class="btn-next" onclick="nextStep(2,'org')">下一步 →</button>
+    </div>
+  </div>
+
+  <!-- ══ Step 3：餐廳 ══ -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <div class="card-title">🍽️ 聚餐餐廳清單（確認選項）</div>
+      <div style="font-size:.78rem;color:#4f46e5;font-weight:600;margin-bottom:12px;">
+        請勾選要列入投票的餐廳（預設全選）。<span style="font-weight:400;color:#718096;">點擊右側按鈕可逐一排除；可在下方新增餐廳。</span>
+      </div>
+      <div id="rest-sel-summary" style="display:none;margin-bottom:10px;"></div>
+      <!-- 餐廳清單 -->
+      <div id="rest-loading" class="loading"><div class="spinner"></div><br>載入餐廳清單中…</div>
+      <div class="vote-list" id="rest-list" style="display:none;"></div>
+      <div id="rest-error" style="display:none;background:#fff5f5;border:1px solid #feb2b2;border-radius:8px;padding:12px 14px;font-size:.78rem;color:#742a2a;margin-top:4px;">
+        <div id="rest-error-msg">⚠️ 無法載入餐廳清單</div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button onclick="loadRestaurantsForStep3(true)" style="background:#e53e3e;color:#fff;border:none;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">🔄 重新嘗試</button>
+          <span style="font-size:.72rem;color:#a0aec0;">如持續失敗，請確認 Apps Script 已更新至最新版本並重新部署</span>
+        </div>
+      </div>
+
+      <!-- 餐廳清單連結 -->
+      <div class="sheet-link-bar" id="sheet-link-bar" style="display:none;">
+        📋 <span>SA 聚餐餐廳清單：</span>
+        <a href="餐廳清單.html" target="_blank" rel="noopener">開啟餐廳清單 ↗</a>
+      </div>
+
+      <!-- 新增餐廳 -->
+      <div class="add-rest-box" id="add-rest-box" style="display:none;">
+        <h4>➕ 找不到想去的餐廳？自行新增！</h4>
+        <div class="add-rest-form">
+          <input type="text" id="new-rest-name" placeholder="餐廳名稱（例：鼎泰豐）" maxlength="30">
+          <select id="new-rest-type">
+            <option>台灣料理</option><option>港式粵菜</option><option>日式料理</option>
+            <option>燒肉</option><option>火鍋/涮涮鍋</option><option>中式合菜</option>
+            <option>海鮮</option><option>其他</option>
+          </select>
+          <button class="btn-add" id="btn-add-rest" onclick="addNewRestaurant()">新增</button>
+        </div>
+        <div class="add-status" id="add-rest-status"></div>
+      </div>
+      <div class="disclaimer">⚠️ 餐廳資料來自 SA 聚餐記錄，訂位前請以 Google Maps 確認最新狀況。</div>
+    </div>
+    <!-- ── 管理工具（發起人專用）── -->
+    <div class="mgmt-card" id="p3-mgmt">
+      <div class="card-title">🛠️ 管理工具</div>
+      <div class="mgmt-row">
+        <div class="mgmt-label">
+          📊 查看投票統計表
+          <span class="mgmt-sub">在 Google Sheet 中查看即時投票結果</span>
+        </div>
+        <a class="btn-sheet-link"
+           href="https://docs.google.com/spreadsheets/d/1wAnF42oHRtI9rf4QnQP49YhDzdmnuvcYLRmJI6kEREo/edit"
+           target="_blank" rel="noopener">📋 開啟統計表 ↗</a>
+      </div>
+      <div class="mgmt-row">
+        <div class="mgmt-label">
+          🗑️ 清空投票資料
+          <span class="mgmt-sub">清除所有投票紀錄與日期設定，準備下次投票（不影響餐廳清單）</span>
+        </div>
+        <div>
+          <button class="btn-clear" id="btn-clear-votes" onclick="clearVotesData()">🗑️ 清空 Excel</button>
+          <div class="clear-status" id="clear-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn-back" id="p3-back" onclick="">← 上一步</button>
+      <button class="btn-next" onclick="nextStep(3)">下一步 →</button>
+    </div>
+  </div>
+
+  <!-- ══ Step 4A：發起人 — 預覽 + 產生投票 HTML ══ -->
+  <div class="panel" id="p4org">
+    <div class="card">
+      <div class="card-title">🚀 確認並產生投票頁</div>
+      <div class="preview-box">
+        <h3>📋 本次投票設定預覽：</h3>
+        <div id="preview-text"></div>
+      </div>
+      <div class="action-area">
+        <button class="btn-gen" id="btn-save-config" onclick="saveConfigAndGenerate()">
+          ⬇️ 儲存設定並產生投票 HTML
+        </button>
+        <div class="action-status" id="gen-status"></div>
+      </div>
+      <p style="text-align:center;font-size:.75rem;color:#a0aec0;margin-top:6px;">
+        產生的 HTML 檔案請透過 Mattermost 附件或共用連結發給同仁
+      </p>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="goStep(3)">← 修改餐廳</button><div></div></div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+const mode = 'org';         // 固定為發起人模式
+let currentStep = 1;
+let selectedMonth = null;   // {year, month}
+let selectedFridays = [];   // [{label, display}] checked by organizer
+let restaurants = [];       // [{name, type}]
+let orgRestSelections = {}; // {name: true/false}, default true = 選入
+
+// ── Apps Script URL（固定內嵌，勿外露）──────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlKzmqIE-UweDjN7z5Phvap_pQDto-Fu4eFIwyryqdx9h_00ZMQXjtFQUJzh9INS7F/exec';
+
+// ── 餐廳清單備用資料（與 餐廳清單.html 同步更新）──────────
+const FALLBACK_RESTAURANTS = [
+  {name:"龍都酒樓 中山總店",type:"中式"},
+  {name:"鰻料理 江戶川",type:"日式"},
+  {name:"丰禾 台北南京東店",type:"合菜"},
+  {name:"阿美飯店",type:"合菜"},
+  {name:"辣吉點正宗成都串串香林森條通店",type:"陸式"},
+  {name:"阿薄郎台式小酒館",type:"酒館"},
+  {name:"養心茶樓 蔬食飲茶",type:"港式"},
+  {name:"肥龍老火鍋 台北林森店",type:"重慶火鍋"},
+  {name:"吾皇大大「朕的鍋物」",type:"火鍋"},
+  {name:"肉多多火鍋-台北中山北店",type:"火鍋"},
+  {name:"鮨老大 日本料理",type:"日式"},
+  {name:"天香回味養生鍋 總店",type:"火鍋"},
+  {name:"AN-Burger",type:"漢堡"},
+  {name:"魚兵衛太春和食處",type:"日式"},
+  {name:"GALERIE Bistro 家樂利小酒館",type:"西式"},
+  {name:"Miacucina（My kitchen）南西店",type:"義式"},
+  {name:"默爾 pasta pizza(台北誠品南西店)",type:"義式"},
+  {name:"Cafe49 Restaurant & Bar",type:"義式"},
+  {name:"金孫韓廚 義大利麵 中山",type:"韓義"},
+  {name:"HATSU Yakiniku & Wine 和牛燒肉專門店",type:"燒肉"},
+  {name:"貳樓中山南西店",type:"美式"},
+  {name:"美天餐室 DAY DAY HAPPY FOOD",type:"港式"},
+  {name:"MO-MO-PARADISE 台北中山牧場",type:"壽喜燒"},
+  {name:"八條老宅麻辣鍋",type:"火鍋"}
+];
+
+// ═══════════════════════════════════════════════════════
+//  Apps Script URL
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  renderMonthButtons();
+});
+
+// ═══════════════════════════════════════════════════════
+//  Step / Mode Management
+// ═══════════════════════════════════════════════════════
+function goStep(n) {
+  const panels = { 1:'p1', 2:'p2org', 3:'p3', 4:'p4org' };
+  const cur = document.getElementById(panels[currentStep]);
+  if (cur) cur.classList.remove('visible');
+  const next = document.getElementById(panels[n]);
+  if (next) next.classList.add('visible');
+  for (let i = 1; i <= 4; i++) {
+    const t = document.getElementById('tab' + i);
+    t.classList.remove('active', 'done');
+    if (i < n) t.classList.add('done');
+    if (i === n) t.classList.add('active');
+  }
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 3 && restaurants.length === 0) loadRestaurantsForStep3();
+}
+
+function nextStep(from) {
+  if (from === 1) {
+    if (!document.getElementById('voter-name').value.trim()) { alert('請輸入姓名！'); return; }
+    goStep(2);
+    return;
+  }
+  if (from === 2) {
+    const checked = getCheckedFridays();
+    if (checked.length === 0) { alert('請至少勾選一個日期！'); return; }
+    selectedFridays = checked;
+    loadRestaurantsForStep3();
+    goStep(3);
+    return;
+  }
+  if (from === 3) {
+    if (getSelectedRestaurants().length === 0) { alert('請至少選入一間餐廳！'); return; }
+    buildOrgPreview();
+    goStep(4);
+    return;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Taiwan Public Holidays (YYYY-MM-DD)
+// ═══════════════════════════════════════════════════════
+const TW_HOLIDAYS = new Set([
+  // 2025
+  '2025-01-01',                                                        // 元旦
+  '2025-01-27','2025-01-28','2025-01-29','2025-01-30','2025-01-31',   // 春節
+  '2025-02-28',                                                        // 和平紀念日
+  '2025-04-04','2025-04-05',                                           // 兒童節+清明
+  '2025-05-01',                                                        // 勞動節
+  '2025-05-31',                                                        // 端午節
+  '2025-10-06',                                                        // 中秋節
+  '2025-10-10',                                                        // 國慶日
+  // 2026
+  '2026-01-01',                                                        // 元旦
+  '2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20',   // 春節
+  '2026-02-28',                                                        // 和平紀念日
+  '2026-04-04','2026-04-05',                                           // 兒童節+清明
+  '2026-05-01',                                                        // 勞動節
+  '2026-06-19',                                                        // 端午節 🎌
+  '2026-09-25',                                                        // 中秋節
+  '2026-10-09','2026-10-10',                                           // 國慶日
+  // 2027
+  '2027-01-01',
+  '2027-02-06','2027-02-07','2027-02-08','2027-02-09','2027-02-10',   // 春節
+  '2027-02-28',
+  '2027-04-04','2027-04-05',
+  '2027-05-01',
+  '2027-05-20',                                                        // 端午節
+  '2027-10-01',                                                        // 中秋節
+  '2027-10-09','2027-10-10',
+]);
+
+function isHoliday(year, month, day) {
+  const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  return TW_HOLIDAYS.has(key);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Month / Friday Logic (Organizer)
+// ═══════════════════════════════════════════════════════
+function renderMonthButtons() {
+  const now = new Date();
+  const months = [
+    { year: now.getFullYear(), month: now.getMonth() + 1 },
+    { year: now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear(),
+      month: now.getMonth() === 11 ? 1 : now.getMonth() + 2 }
+  ];
+  const wrap = document.getElementById('month-btns');
+  wrap.innerHTML = '';
+  months.forEach((m, idx) => {
+    const div = document.createElement('div');
+    div.className = 'month-btn' + (idx === 0 ? ' selected' : '');
+    div.dataset.year  = m.year;
+    div.dataset.month = m.month;
+    div.innerHTML = `<div class="mlabel">${m.year} 年 ${m.month} 月</div>
+      <div class="msub">${idx === 0 ? '當月' : '下個月'}</div>`;
+    div.onclick = () => selectMonth(div, m.year, m.month);
+    wrap.appendChild(div);
+  });
+  // Auto-select first month
+  selectMonth(wrap.children[0], months[0].year, months[0].month);
+}
+
+function selectMonth(btnEl, year, month) {
+  document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  selectedMonth = { year, month };
+  renderFridays(year, month);
+  document.getElementById('friday-section').style.display = 'block';
+}
+
+function getFridaysOfMonth(year, month) {
+  const fridays = [];
+  const d = new Date(year, month - 1, 1);
+  while (d.getDay() !== 5) d.setDate(d.getDate() + 1);
+  while (d.getMonth() === month - 1) {
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    fridays.push({
+      label: `${m}/${day}(五)`,
+      display: `${m} 月 ${day} 日（週五）`
+    });
+    d.setDate(d.getDate() + 7);
+  }
+  return fridays;
+}
+
+function renderFridays(year, month) {
+  const fridays = getFridaysOfMonth(year, month);
+  const list = document.getElementById('friday-list');
+  list.innerHTML = '';
+  fridays.forEach((f, i) => {
+    const id = 'fri-' + i;
+    // 解析日期數字做假日判斷
+    const day = parseInt(f.label.split('/')[1]);
+    const holiday = isHoliday(year, month, day);
+    const checked = !holiday; // 假日預設不勾選
+    const item = document.createElement('label');
+    item.className = 'date-item' + (checked ? ' checked' : ' holiday');
+    item.innerHTML = `
+      <input type="checkbox" id="${id}" value='${JSON.stringify(f)}'
+             ${checked ? 'checked' : ''} onchange="toggleDateItem(this)">
+      <span class="dlabel">D${i+1} &nbsp;${escHtml(f.display)}
+        ${holiday ? '<span class="holiday-tag">🎌 國定假日</span>' : ''}
+      </span>
+      <span class="dsub">${escHtml(f.label)}</span>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function addCustomDate() {
+  const dateInput  = document.getElementById('custom-date-input');
+  const noteInput  = document.getElementById('custom-date-note');
+  const statusEl   = document.getElementById('custom-date-status');
+  const dateStr    = dateInput.value; // YYYY-MM-DD
+  if (!dateStr) { statusEl.textContent = '⚠️ 請先選擇日期'; return; }
+
+  const d = new Date(dateStr + 'T00:00:00');
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekNames = ['日','一','二','三','四','五','六'];
+  const weekday = weekNames[d.getDay()];
+  const note = noteInput.value.trim();
+
+  const label   = `${m}/${day}(${weekday})`;
+  const display = `${m} 月 ${day} 日（週${weekday}）${note ? ' · ' + note : ''}`;
+  const val = JSON.stringify({ label, display });
+
+  // 防止重複
+  const existing = document.querySelectorAll('#friday-list input[type=checkbox]');
+  for (const cb of existing) {
+    try { if (JSON.parse(cb.value).label === label) { statusEl.textContent = '⚠️ 此日期已在清單中'; return; } }
+    catch(e) {}
+  }
+
+  const item = document.createElement('label');
+  item.className = 'date-item checked';
+  item.innerHTML = `
+    <input type="checkbox" value='${val.replace(/'/g,"&#39;")}' checked onchange="toggleDateItem(this)">
+    <span class="dlabel">${escHtml(display)} <span class="custom-tag">自定</span></span>
+    <button class="btn-remove-date" title="移除" onclick="this.closest('.date-item').remove();event.preventDefault();">✕</button>
+    <span class="dsub">${escHtml(label)}</span>
+  `;
+  document.getElementById('friday-list').appendChild(item);
+
+  statusEl.textContent = `✅ 已新增 ${label}`;
+  dateInput.value = '';
+  noteInput.value = '';
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+function toggleDateItem(cb) {
+  cb.closest('.date-item').classList.toggle('checked', cb.checked);
+}
+
+function getCheckedFridays() {
+  const cbs = document.querySelectorAll('#friday-list input[type=checkbox]:checked');
+  return Array.from(cbs).map(cb => JSON.parse(cb.value));
+}
+
+// ═══════════════════════════════════════════════════════
+//  Step 3 — Restaurant
+// ═══════════════════════════════════════════════════════
+let _restLoading = false; // 防止重複觸發
+
+async function loadRestaurantsForStep3(force) {
+  if (_restLoading && !force) return;
+  _restLoading = true;
+  document.getElementById('rest-loading').style.display = 'block';
+  document.getElementById('rest-list').style.display = 'none';
+  document.getElementById('rest-error').style.display = 'none';
+  document.getElementById('add-rest-box').style.display = 'none';
+  document.getElementById('sheet-link-bar').style.display = 'none';
+  document.getElementById('p3-back').onclick = () => goStep(2);
+
+  // 1. 嘗試從 餐廳清單.html 讀取（HTTP 模式有效）
+  let loaded = false;
+  try {
+    const resp = await fetch('餐廳清單.html', { cache: 'no-cache' });
+    if (resp.ok) {
+      const text = await resp.text();
+      const match = text.match(/const RESTAURANTS_DATA = (\[[\s\S]*?\]);/);
+      if (match) {
+        restaurants = JSON.parse(match[1]);
+        loaded = true;
+      }
+    }
+  } catch(e) { /* file:// 模式無法 fetch，直接用備用資料 */ }
+
+  // 2. 無法抓到就用備用資料（與 餐廳清單.html 同步）
+  if (!loaded) {
+    restaurants = FALLBACK_RESTAURANTS.slice();
+  }
+  _restLoading = false;
+  renderRestList();
+}
+
+function showRestError(msg) {
+  document.getElementById('rest-loading').style.display = 'none';
+  document.getElementById('rest-list').style.display = 'none';
+  const msgEl = document.getElementById('rest-error-msg');
+  if (msgEl && msg) msgEl.textContent = '⚠️ ' + msg;
+  document.getElementById('rest-error').style.display = 'block';
+}
+
+function renderRestList() {
+  const list = document.getElementById('rest-list');
+  list.innerHTML = '';
+  if (restaurants.length === 0) {
+    list.innerHTML = '<div style="color:#a0aec0;font-size:.85rem;padding:10px;">（SA 聚餐清單目前沒有資料）</div>';
+  } else {
+    restaurants.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'vote-item rest-row';
+      {
+        // Organizer view — selection toggle
+        const sel = orgRestSelections[r.name] !== false; // default true
+        if (sel) div.classList.remove('rest-excluded');
+        else div.classList.add('rest-excluded');
+        div.innerHTML = `
+          <div><div class="badge-r">R${i+1}</div></div>
+          <div>
+            <div class="item-label">${escHtml(r.name)}</div>
+            <div class="item-sub">${escHtml(r.type || '')}</div>
+          </div>
+          <button class="vbtn-sel ${sel ? 'sel-in' : 'sel-out'}"
+                  onclick="toggleRestSel('${escAttr(r.name)}', this, event)">
+            ${sel ? '✅ 選入' : '— 排除'}
+          </button>
+        `;
+      }
+      list.appendChild(div);
+    });
+  }
+  document.getElementById('rest-loading').style.display = 'none';
+  list.style.display = 'flex';
+  document.getElementById('add-rest-box').style.display = 'block';
+  document.getElementById('sheet-link-bar').style.display = 'flex';
+  if (mode === 'org') updateOrgSelSummary();
+}
+
+// ── Organizer restaurant selection helpers ──
+function toggleRestSel(name, btn, event) {
+  if (event) event.stopPropagation();
+  const cur = orgRestSelections[name] !== false; // true = 目前已選入
+  orgRestSelections[name] = !cur;
+  const row = btn.closest('.vote-item');
+  if (orgRestSelections[name]) {
+    btn.textContent = '✅ 選入';
+    btn.className = 'vbtn-sel sel-in';
+    row.classList.remove('rest-excluded');
+  } else {
+    btn.textContent = '— 排除';
+    btn.className = 'vbtn-sel sel-out';
+    row.classList.add('rest-excluded');
+  }
+  updateOrgSelSummary();
+}
+
+function getSelectedRestaurants() {
+  return restaurants.filter(r => orgRestSelections[r.name] !== false);
+}
+
+function updateOrgSelSummary() {
+  const sumEl = document.getElementById('rest-sel-summary');
+  if (!sumEl) return;
+  const total = restaurants.length;
+  const selCnt = getSelectedRestaurants().length;
+  sumEl.style.display = 'block';
+  sumEl.innerHTML = `<span class="sel-summary">✅ 已選入 ${selCnt} / ${total} 間餐廳列入投票</span>` +
+    (selCnt === 0 ? '<span style="font-size:.74rem;color:#c53030;margin-left:8px;">⚠️ 請至少選入一間餐廳</span>' : '');
+}
+
+async function addNewRestaurant() {
+  const nameInput  = document.getElementById('new-rest-name');
+  const typeSelect = document.getElementById('new-rest-type');
+  const statusEl   = document.getElementById('add-rest-status');
+  const btn        = document.getElementById('btn-add-rest');
+  const name = nameInput.value.trim();
+  if (!name) { statusEl.textContent = '⚠️ 請輸入餐廳名稱'; return; }
+  if (restaurants.some(r => r.name === name)) { statusEl.textContent = '⚠️ 餐廳已在清單中'; return; }
+  btn.disabled = true;
+  statusEl.textContent = '⏳ 新增中…';
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'addRestaurant', name, type: typeSelect.value })
+    });
+    restaurants.push({ name, type: typeSelect.value });
+    renderRestList();
+    nameInput.value = '';
+    statusEl.textContent = `✅ 已新增「${name}」`;
+  } catch(e) {
+    statusEl.textContent = `❌ 新增失敗：${e.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  Step 4A — Organizer Preview + Generate
+// ═══════════════════════════════════════════════════════
+function buildOrgPreview() {
+  const name = document.getElementById('voter-name').value.trim();
+  const selRests = getSelectedRestaurants();
+  const lines = [];
+  lines.push(`發起人：${name}`);
+  lines.push(`投票月份：${selectedMonth.year} 年 ${selectedMonth.month} 月`);
+  lines.push('');
+  lines.push('【投票日期】');
+  selectedFridays.forEach((f, i) => lines.push(`  D${i+1} ${f.display}  (${f.label})`));
+  lines.push('');
+  lines.push(`【餐廳選項】共 ${selRests.length} 間（已從 ${restaurants.length} 間中選入）`);
+  selRests.slice(0, 10).forEach((r, i) => lines.push(`  R${i+1} ${r.name}（${r.type || ''}）`));
+  if (selRests.length > 10) lines.push(`  … 等共 ${selRests.length} 間`);
+  document.getElementById('preview-text').textContent = lines.join('\n');
+}
+
+async function saveConfigAndGenerate() {
+  const statusEl = document.getElementById('gen-status');
+  const btn = document.getElementById('btn-save-config');
+  if (selectedFridays.length === 0) { statusEl.textContent='⚠️ 沒有選取日期'; return; }
+
+  btn.disabled = true;
+  statusEl.className = 'action-status ing-txt';
+  statusEl.textContent = '⏳ 儲存日期設定到 Google Sheet…';
+
+  try {
+    // 1. POST setConfig to GS（同時建立該月 Sheet）
+    const sheetName = `${selectedMonth.year}年${selectedMonth.month}月`;
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'setConfig', dates: selectedFridays.map(f => f.label), sheetName })
+    });
+
+    statusEl.textContent = '⏳ 產生投票 HTML 中…';
+
+    // 2. Generate voter HTML (pass only organizer-selected restaurants)
+    const html = generateVoterHtml(selectedFridays, getSelectedRestaurants(), APPS_SCRIPT_URL, selectedMonth.year, selectedMonth.month, sheetName);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `月會投票_${selectedMonth.year}${String(selectedMonth.month).padStart(2,'0')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+
+    statusEl.className = 'action-status ok-txt';
+    statusEl.textContent = `🎉 完成！「月會投票_${selectedMonth.year}${String(selectedMonth.month).padStart(2,'0')}.html」已下載，請透過 Mattermost 分享給同仁！`;
+  } catch(e) {
+    statusEl.className = 'action-status err-txt';
+    statusEl.textContent = `❌ 失敗：${e.message}`;
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Generate Voter HTML (Organizer)
+// ═══════════════════════════════════════════════════════
+function generateVoterHtml(dates, selectedRests, appsScriptUrl, year, month, sheetName) {
+  const datesJson = JSON.stringify(dates);
+  const restsJson = JSON.stringify(selectedRests);
+  const monthStr = `${year} 年 ${month} 月`;
+  const sheetNameStr = sheetName || `${year}年${month}月`;
+  const deadline = (() => {
+    // Suggest deadline = 2 days before first Friday
+    const d = new Date(year, month - 1, dates[0] ? parseInt(dates[0].label.split('/')[1]) : 7);
+    d.setDate(d.getDate() - 2);
+    return `${d.getMonth()+1} 月 ${d.getDate()} 日`;
+  })();
+
+  // Escape backticks and ${ in the embedded JS
+  const saLink = '餐廳清單.html';
+  const gsUrl = appsScriptUrl.replace(/`/g, '\\`');
+
+  return `<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${monthStr} 月會投票</title>
+<style>
+:root{color-scheme:light}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;background:#f5f7fa;color:#1a202c;min-height:100vh;padding-bottom:48px}
+.header{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;padding:26px 20px 20px;text-align:center}
+.header h1{font-size:1.3rem;font-weight:800}
+.header p{font-size:.82rem;opacity:.85;margin-top:5px}
+.deadline{display:inline-block;margin-top:9px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:3px 14px;border-radius:999px;font-size:.78rem}
+.steps{display:flex;justify-content:center;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 8px}
+.step{padding:11px 14px;font-size:.78rem;font-weight:600;color:#a0aec0;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s}
+.step.active{color:#4f46e5;border-color:#4f46e5}
+.step .num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:#e2e8f0;border-radius:50%;font-size:.68rem;margin-right:4px;transition:background .15s}
+.step.active .num{background:#4f46e5;color:#fff}
+.step.done .num{background:#48bb78;color:#fff}
+.step.done{color:#48bb78}
+.content{max-width:720px;margin:0 auto;padding:18px 16px}
+.panel{display:none}
+.panel.visible{display:block}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:20px;margin-bottom:14px}
+.card-title{font-size:.95rem;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+.name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.name-row label{font-weight:600;font-size:.9rem;white-space:nowrap}
+.name-row input{flex:1;min-width:140px;padding:9px 13px;border:2px solid #e2e8f0;border-radius:8px;font-size:.95rem;outline:none;transition:border-color .2s}
+.name-row input:focus{border-color:#4f46e5}
+.vote-list{display:flex;flex-direction:column;gap:8px}
+.vote-item{display:grid;align-items:center;gap:8px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;transition:border-color .12s,background .12s}
+.vote-item.date-row{grid-template-columns:44px 1fr auto auto auto}
+.vote-item.rest-row{grid-template-columns:40px 1fr auto auto}
+.vote-item:hover{border-color:#c7d2fe;background:#fafaff}
+.badge{background:#eef2ff;color:#4338ca;font-weight:700;font-size:.72rem;padding:3px 6px;border-radius:6px;text-align:center}
+.badge-r{background:#fef3c7;color:#92400e;font-weight:700;font-size:.68rem;padding:3px 5px;border-radius:6px;white-space:nowrap}
+.item-label{font-size:.88rem;font-weight:500}
+.item-sub{font-size:.72rem;color:#718096;margin-top:2px}
+.vbtn{padding:5px 10px;border-radius:7px;border:2px solid #e2e8f0;font-size:.76rem;font-weight:700;cursor:pointer;background:#f7fafc;color:#a0aec0;transition:all .1s;white-space:nowrap}
+.vbtn:hover{border-color:#a0aec0;color:#4a5568}
+.vbtn.yes.on{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.vbtn.maybe.on{background:#fefcbf;border-color:#d69e2e;color:#744210}
+.vbtn.no.on{background:#fed7d7;border-color:#e53e3e;color:#742a2a}
+.vbtn.like.on{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.vbtn.dislike.on{background:#fed7d7;border-color:#e53e3e;color:#742a2a}
+.nav{display:flex;justify-content:space-between;margin-top:8px}
+.btn-next{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;padding:11px 26px;border-radius:9px;font-size:.9rem;font-weight:700;cursor:pointer}
+.btn-next:hover{opacity:.88}
+.btn-back{background:#e2e8f0;color:#4a5568;border:none;padding:11px 20px;border-radius:9px;font-size:.9rem;font-weight:600;cursor:pointer}
+.btn-back:hover{background:#cbd5e0}
+.loading{text-align:center;padding:22px;color:#718096;font-size:.88rem}
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid #e2e8f0;border-top-color:#4f46e5;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.add-rest-box{margin-top:14px;padding:13px 15px;background:#f0fdf4;border:2px dashed #86efac;border-radius:10px}
+.add-rest-box h4{font-size:.84rem;color:#166534;margin-bottom:9px}
+.add-rest-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.add-rest-form input{flex:1;min-width:130px;padding:6px 10px;border:1.5px solid #86efac;border-radius:7px;font-size:.83rem;outline:none}
+.add-rest-form select{padding:6px 9px;border:1.5px solid #86efac;border-radius:7px;font-size:.83rem;background:#fff;outline:none}
+.btn-add{background:#22c55e;color:#fff;border:none;padding:7px 13px;border-radius:7px;font-size:.83rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-add:hover{background:#16a34a}
+.btn-add:disabled{background:#a0aec0;cursor:not-allowed}
+.add-status{font-size:.75rem;color:#166534;margin-top:6px;min-height:16px}
+.sheet-link{margin-top:10px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:.76rem;color:#1e40af}
+.sheet-link a{color:#1d4ed8;font-weight:700}
+.result-box{background:#f7fafc;border:2px dashed #cbd5e0;border-radius:10px;padding:14px;margin-bottom:12px}
+.result-box h3{font-size:.82rem;color:#4a5568;margin-bottom:8px}
+#result-text{white-space:pre-wrap;font-family:"Courier New",monospace;font-size:.75rem;color:#2d3748;background:#fff;padding:12px;border-radius:8px;border:1px solid #e2e8f0;max-height:260px;overflow-y:auto}
+.gs-area{text-align:center;padding:14px}
+.btn-gs{background:linear-gradient(135deg,#38a169,#276749);color:#fff;border:none;padding:14px 34px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn-gs:hover{opacity:.88}
+.btn-gs:disabled{background:#a0aec0;cursor:not-allowed}
+#submit-status{margin-top:12px;font-size:.88rem;font-weight:600;min-height:24px}
+.ok-txt{color:#276749}.err-txt{color:#c53030}.ing-txt{color:#4f46e5}
+.disclaimer{background:#fffbeb;border:1px solid #f6e05e;border-radius:8px;padding:9px 13px;font-size:.75rem;color:#7b6000;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📅 ${monthStr} 月會投票（含聚餐）</h1>
+  <p>投票結果將自動存入 Google Sheet</p>
+  <div class="deadline">⏰ 截止：${deadline}（建議）</div>
+</div>
+<div class="steps">
+  <div class="step active" id="tab1"><span class="num">1</span>姓名</div>
+  <div class="step"        id="tab2"><span class="num">2</span>日期投票</div>
+  <div class="step"        id="tab3"><span class="num">3</span>聚餐投票</div>
+  <div class="step"        id="tab4"><span class="num">4</span>送出</div>
+</div>
+<div class="content">
+
+  <!-- Step 1 -->
+  <div class="panel visible" id="p1">
+    <div class="card">
+      <div class="card-title">👤 請輸入姓名</div>
+      <div class="name-row"><label>姓名：</label><input type="text" id="voter-name" placeholder="例：王小明" autofocus></div>
+    </div>
+    <div class="nav"><div></div><button class="btn-next" onclick="nextStep(1)">下一步 →</button></div>
+  </div>
+
+  <!-- Step 2: Date voting (embedded dates) -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <div class="card-title">📆 選擇可開會的日期</div>
+      <p style="font-size:.78rem;color:#718096;margin-bottom:12px;">✅ 可以 ／ 🔺 也許 ／ ❌ 不行</p>
+      <div class="vote-list" id="date-list"></div>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="goStep(1)">← 上一步</button><button class="btn-next" onclick="nextStep(2)">下一步 →</button></div>
+  </div>
+
+  <!-- Step 3: Restaurant voting (dynamic) -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <div class="card-title">🍽️ 聚餐餐廳偏好（可複選）</div>
+      <p style="font-size:.78rem;color:#718096;margin-bottom:12px;">✅ 想去 ／ ❌ 不想去 ／ 不選表示無意見</p>
+      <div id="rest-loading" class="loading"><div class="spinner"></div><br>載入餐廳清單中…</div>
+      <div class="vote-list" id="rest-list" style="display:none;"></div>
+      <div id="rest-error" style="display:none;" class="disclaimer">⚠️ 無法載入餐廳清單，請確認網路連線正常。</div>
+      <div class="sheet-link" id="sheet-link" style="display:none;">
+        📋 SA 聚餐餐廳清單：<a href="${saLink}" target="_blank" rel="noopener">開啟餐廳清單 ↗</a>
+      </div>
+      <div class="add-rest-box" id="add-rest-box" style="display:none;">
+        <h4>➕ 找不到想去的餐廳？自行新增！</h4>
+        <div class="add-rest-form">
+          <input type="text" id="new-rest-name" placeholder="餐廳名稱" maxlength="30">
+          <select id="new-rest-type"><option>台灣料理</option><option>港式粵菜</option><option>日式料理</option><option>燒肉</option><option>火鍋/涮涮鍋</option><option>中式合菜</option><option>海鮮</option><option>其他</option></select>
+          <button class="btn-add" id="btn-add-rest" onclick="addRest()">新增</button>
+        </div>
+        <div class="add-status" id="add-status"></div>
+      </div>
+      <div class="disclaimer">⚠️ 餐廳資料來自 SA 聚餐記錄，訂位前請以 Google Maps 確認。</div>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="goStep(2)">← 上一步</button><button class="btn-next" onclick="nextStep(3)">確認送出 →</button></div>
+  </div>
+
+  <!-- Step 4: Submit -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <div class="card-title">✅ 確認送出</div>
+      <div class="result-box"><h3>📋 你的投票摘要：</h3><div id="result-text"></div></div>
+      <div class="gs-area">
+        <button class="btn-gs" id="btn-submit" onclick="submitVote()">📊 送出並寫入 Google Sheet</button>
+        <div id="submit-status"></div>
+      </div>
+      <p style="text-align:center;font-size:.75rem;color:#a0aec0;margin-top:8px;">送出成功後將自動出現在統計表中</p>
+    </div>
+    <div class="nav"><button class="btn-back" onclick="goStep(3)">← 修改投票</button><div></div></div>
+  </div>
+
+</div>
+<script>
+const VOTE_DATES = ${datesJson};
+const SELECTED_RESTAURANTS = ${restsJson};
+const APPS_SCRIPT_URL = '${gsUrl}';
+const VOTE_MONTH = '${monthStr}';
+const SHEET_NAME = '${sheetNameStr}';
+const SA_LINK = '${saLink}';
+
+let curStep = 1;
+const dateVotes = {};
+const restVotes = {};
+let restaurants = [];
+
+// Render date voting list
+(function() {
+  const list = document.getElementById('date-list');
+  VOTE_DATES.forEach(function(d, i) {
+    const div = document.createElement('div');
+    div.className = 'vote-item date-row';
+    div.innerHTML = '<div><div class="badge">D'+(i+1)+'</div></div>' +
+      '<div><div class="item-label">'+escHtml(d.display)+'</div></div>' +
+      '<button class="vbtn yes"   onclick="vDate(this,\\''+escAttr(d.label)+'\\',\\'yes\\')">✅ 可以</button>' +
+      '<button class="vbtn maybe" onclick="vDate(this,\\''+escAttr(d.label)+'\\',\\'maybe\\')">🔺 也許</button>' +
+      '<button class="vbtn no"    onclick="vDate(this,\\''+escAttr(d.label)+'\\',\\'no\\')">❌ 不行</button>';
+    list.appendChild(div);
+  });
+})();
+
+// Load restaurants on step 3 — use organizer's pre-selected list (embedded)
+function loadRestaurants() {
+  restaurants = SELECTED_RESTAURANTS.slice();
+  renderRests();
+}
+function renderRests() {
+  const list = document.getElementById('rest-list');
+  list.innerHTML = '';
+  restaurants.forEach(function(r, i) {
+    const div = document.createElement('div');
+    div.className = 'vote-item rest-row';
+    div.innerHTML = '<div><div class="badge-r">R'+(i+1)+'</div></div>' +
+      '<div><div class="item-label">'+escHtml(r.name)+'</div><div class="item-sub">'+escHtml(r.type||'')+'</div></div>' +
+      '<button class="vbtn like"    onclick="vRest(this,\\''+escAttr(r.name)+'\\',\\'like\\')">✅ 想去</button>' +
+      '<button class="vbtn dislike" onclick="vRest(this,\\''+escAttr(r.name)+'\\',\\'dislike\\')">❌ 不想</button>';
+    list.appendChild(div);
+    // 還原已選投票狀態
+    var voted = restVotes[r.name];
+    if (voted) {
+      div.querySelectorAll('.vbtn').forEach(function(b) {
+        if (b.classList.contains(voted)) b.classList.add('on');
+      });
+    }
+  });
+  document.getElementById('rest-loading').style.display='none';
+  list.style.display='flex';
+  document.getElementById('sheet-link').style.display='block';
+  document.getElementById('add-rest-box').style.display='block';
+}
+
+function goStep(n) {
+  document.getElementById('p'+curStep).classList.remove('visible');
+  document.getElementById('p'+n).classList.add('visible');
+  for (var i=1;i<=4;i++) {
+    var t=document.getElementById('tab'+i);
+    t.classList.remove('active','done');
+    if(i<n) t.classList.add('done');
+    if(i===n) t.classList.add('active');
+  }
+  curStep = n;
+  if (n===3 && restaurants.length===0) loadRestaurants();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function nextStep(from) {
+  if (from===1 && !document.getElementById('voter-name').value.trim()) { alert('請輸入姓名！'); return; }
+  if (from===2 && Object.keys(dateVotes).length===0) { alert('請至少對一個日期投票！'); return; }
+  if (from===3) buildResult();
+  goStep(from+1);
+}
+function vDate(btn, label, val) {
+  if (dateVotes[label]===val) { delete dateVotes[label]; btn.closest('.vote-item').querySelectorAll('.vbtn').forEach(function(b){b.classList.remove('on');}); return; }
+  dateVotes[label]=val;
+  btn.closest('.vote-item').querySelectorAll('.vbtn').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+}
+function vRest(btn, name, val) {
+  if (restVotes[name]===val) { delete restVotes[name]; btn.closest('.vote-item').querySelectorAll('.vbtn').forEach(function(b){b.classList.remove('on');}); return; }
+  restVotes[name]=val;
+  btn.closest('.vote-item').querySelectorAll('.vbtn').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+}
+function addRest() {
+  var nameEl=document.getElementById('new-rest-name');
+  var typeEl=document.getElementById('new-rest-type');
+  var statEl=document.getElementById('add-status');
+  var btn=document.getElementById('btn-add-rest');
+  var name=nameEl.value.trim();
+  if (!name){statEl.textContent='⚠️ 請輸入名稱';return;}
+  if (restaurants.some(function(r){return r.name===name;})){statEl.textContent='⚠️ 已在清單中';return;}
+  btn.disabled=true; statEl.textContent='⏳ 新增中…';
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'addRestaurant',name:name,type:typeEl.value})})
+    .then(function(){
+      restaurants.push({name:name,type:typeEl.value});
+      renderRests();
+      nameEl.value='';
+      statEl.textContent='✅ 已新增「'+name+'」';
+      // 2 秒後同步 Sheet，但必須保留：
+      // (1) 發起人選入的清單 SELECTED_RESTAURANTS
+      // (2) 本次新增的餐廳（Sheet 寫入可能有延遲）
+      var addedName=name, addedType=typeEl.value;
+      setTimeout(function(){
+        fetch(APPS_SCRIPT_URL+'?action=getRestaurants',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(j){
+          if(j.status==='ok'){
+            var merged=j.restaurants.slice();
+            // 補回發起人選入但 Sheet 未收錄的餐廳
+            SELECTED_RESTAURANTS.forEach(function(sr){
+              if(!merged.some(function(r){return r.name===sr.name;})) merged.push(sr);
+            });
+            // 補回本次新增但 Sheet 尚未收錄的餐廳
+            if(!merged.some(function(r){return r.name===addedName;})){
+              merged.push({name:addedName,type:addedType});
+            }
+            restaurants=merged;
+            renderRests();
+          }
+        });
+      },2000);
+    }).catch(function(e){statEl.textContent='❌ '+e.message;})
+    .finally(function(){btn.disabled=false;});
+}
+function buildResult() {
+  var name=document.getElementById('voter-name').value.trim();
+  var em={yes:'✅ 可以',maybe:'🔺 也許',no:'❌ 不行',like:'✅ 想去',dislike:'❌ 不想'};
+  var lines=['投票人：'+name,'','【日期】'];
+  VOTE_DATES.forEach(function(d,i){lines.push('  D'+(i+1)+' '+d.display+'：'+(em[dateVotes[d.label]]||'（未填）'));});
+  lines.push('','【聚餐餐廳】');
+  var voted=Object.keys(restVotes);
+  if(!voted.length){lines.push('  （未填寫）');}
+  else{voted.forEach(function(n){lines.push('  '+n+'：'+em[restVotes[n]]);});}
+  document.getElementById('result-text').textContent=lines.join('\\n');
+}
+function submitVote() {
+  var btn=document.getElementById('btn-submit');
+  var statEl=document.getElementById('submit-status');
+  var name=document.getElementById('voter-name').value.trim();
+  var payload={name:name,dates:dateVotes,restaurants:restVotes,sheetName:SHEET_NAME};
+  btn.disabled=true;
+  statEl.className='ing-txt'; statEl.textContent='⏳ 送出中…';
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)})
+    .then(function(){statEl.className='ok-txt';statEl.textContent='🎉 投票成功！感謝你的參與！';btn.textContent='✅ 已送出';})
+    .catch(function(e){statEl.className='err-txt';statEl.textContent='❌ 送出失敗：'+e.message;btn.disabled=false;});
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escAttr(s){return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
+<\/script>
+</body>
+</html>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  清空投票資料
+// ═══════════════════════════════════════════════════════
+async function clearVotesData() {
+  const statusEl = document.getElementById('clear-status');
+  const btn = document.getElementById('btn-clear-votes');
+
+  // 決定要清的 Sheet 名稱
+  const clearSheetName = selectedMonth
+    ? `${selectedMonth.year}年${selectedMonth.month}月`
+    : '工作表1';
+
+  const confirmed = confirm(
+    `⚠️ 確定要清空「${clearSheetName}」的投票資料嗎？\n\n` +
+    '此操作將清除：\n' +
+    '・全部投票紀錄\n' +
+    '・日期設定\n' +
+    '・統計摘要\n\n' +
+    '餐廳清單不受影響。清空後無法復原！'
+  );
+  if (!confirmed) return;
+
+  btn.disabled = true;
+  statusEl.className = 'clear-status ing-txt';
+  statusEl.textContent = `⏳ 清空「${clearSheetName}」中，請稍候…`;
+
+  try {
+    // 改用 GET 方式，才能讀到實際回傳結果確認成功
+    const url = `${APPS_SCRIPT_URL}?action=clearVotes&sheetName=${encodeURIComponent(clearSheetName)}`;
+    const resp = await fetch(url, { cache: 'no-cache' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (json.status === 'ok') {
+      statusEl.className = 'clear-status ok-txt';
+      statusEl.textContent = `✅ ${json.msg}`;
+    } else {
+      throw new Error(json.msg || '未知錯誤');
+    }
+  } catch(e) {
+    statusEl.className = 'clear-status err-txt';
+    statusEl.textContent = `❌ 清空失敗：${e.message}`;
+    alert(`清空失敗：${e.message}\n\n請確認 Apps Script 已重新部署（版本選「最新版本」）。`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+</script>
+</body>
+</html>
